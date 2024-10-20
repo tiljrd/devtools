@@ -70,7 +70,7 @@ contract EndpointManager is Test {
         endpointSetup.eidList = new uint32[](_endpointNum);
         endpointSetup.sendLibs = new address[](_endpointNum);
         endpointSetup.receiveLibs = new address[](_endpointNum);
-        endpointSetup.signers = new address ;
+        endpointSetup.signers = new address[](1);
         endpointSetup.signers[0] = vm.addr(1);
 
         for (uint8 i = 0; i < _endpointNum; i++) {
