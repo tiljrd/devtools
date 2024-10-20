@@ -1,5 +1,6 @@
 pragma solidity ^0.8.18;
 
+import { Test } from "forge-std/Test.sol";
 import { EndpointV2Mock as EndpointV2 } from "./mocks/EndpointV2Mock.sol";
 import { SendUln302Mock as SendUln302 } from "./mocks/SendUln302Mock.sol";
 import { ReceiveUln302Mock as ReceiveUln302, IReceiveUlnE2 } from "./mocks/ReceiveUln302Mock.sol";
@@ -14,7 +15,7 @@ import { SimpleMessageLibMock } from "./mocks/SimpleMessageLibMock.sol";
 import { UlnConfig, SetDefaultUlnConfigParam } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
 import { SetDefaultExecutorConfigParam, ExecutorConfig } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
 
-contract EndpointManager {
+contract EndpointManager is Test {
 
     struct EndpointSetup {
         EndpointV2[] endpointList;

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.18;
 
-import "./EndpointManager.sol";
-
 // Forge
 import { Test } from "forge-std/Test.sol";
 import "forge-std/console.sol";
+
+import "./EndpointManager.sol";
 
 // OpenZeppelin
 import { DoubleEndedQueue } from "@openzeppelin/contracts/utils/structs/DoubleEndedQueue.sol";
