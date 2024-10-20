@@ -1,32 +1,33 @@
 // SPDX-License-Identifier: UNLICENSED
+
 pragma solidity ^0.8.18;
 
 // Forge
 import { Test } from "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-// OpenZeppelin
+// Oz
 import { DoubleEndedQueue } from "@openzeppelin/contracts/utils/structs/DoubleEndedQueue.sol";
 
-// LayerZero Message Library
+// Msg Lib
 import { UlnConfig, SetDefaultUlnConfigParam } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
 import { SetDefaultExecutorConfigParam, ExecutorConfig } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
 
-// LayerZero Protocol
+// Protocol
 import { IMessageLib } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLib.sol";
 import { ExecutorOptions } from "@layerzerolabs/lz-evm-protocol-v2/contracts/messagelib/libs/ExecutorOptions.sol";
 import { PacketV1Codec } from "@layerzerolabs/lz-evm-protocol-v2/contracts/messagelib/libs/PacketV1Codec.sol";
 import { Origin, ILayerZeroEndpointV2 } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 
-// Mocks
+// @dev oz4/5 breaking change...
 import { ReceiveUln302Mock as ReceiveUln302, IReceiveUlnE2 } from "./mocks/ReceiveUln302Mock.sol";
 import { DVNMock as DVN, ExecuteParam, IDVN } from "./mocks/DVNMock.sol";
 import { DVNFeeLibMock as DVNFeeLib } from "./mocks/DVNFeeLibMock.sol";
 import { ExecutorMock as Executor, IExecutor } from "./mocks/ExecutorMock.sol";
 import { PriceFeedMock as PriceFeed, ILayerZeroPriceFeed } from "./mocks/PriceFeedMock.sol";
-import { EndpointV2Mock as EndpointV2 } from "./mocks/EndpointV2Mock.sol";
+import { EndpointV2Mock as EndpointV2 } from "./mocks//EndpointV2Mock.sol";
 
-// Miscellaneous Mocks
+// Misc. Mocks
 import { OptionsHelper } from "./OptionsHelper.sol";
 import { SendUln302Mock as SendUln302 } from "./mocks/SendUln302Mock.sol";
 import { SimpleMessageLibMock } from "./mocks/SimpleMessageLibMock.sol";
@@ -39,7 +40,7 @@ interface IOAppSetPeer {
 
 /**
  * @title TestHelperOz5
- * @notice Optimized helper contract for setting up and managing LayerZero test environments.
+ * @notice Helper contract for setting up and managing LayerZero test environments.
  * @dev Extends Foundry's Test contract and provides utility functions for setting up mock endpoints and OApps.
  */
 contract TestHelperOz5 is Test, OptionsHelper {
@@ -74,30 +75,29 @@ contract TestHelperOz5 is Test, OptionsHelper {
     using DoubleEndedQueue for DoubleEndedQueue.Bytes32Deque;
     using PacketV1Codec for bytes;
 
-    mapping(uint32 => mapping(bytes32 => DoubleEndedQueue.Bytes32Deque)) public packetsQueue; // dstEid => dstUA => guids queue
-    mapping(bytes32 => bytes) public packets; // guid => packet bytes
-    mapping(bytes32 => bytes) public optionsLookup; // guid => options
-    mapping(uint32 => address) public endpoints; // eid => endpoint
+    mapping(uint32 => mapping(bytes32 => DoubleEndedQueue.Bytes32Deque)) packetsQueue; // dstEid => dstUA => guids queue
+    mapping(bytes32 => bytes) packets; // guid => packet bytes
+    mapping(bytes32 => bytes) optionsLookup; // guid => options
 
-    uint256 public constant TREASURY_GAS_CAP = 1_000_000_000_000; // Reduced size
-    uint256 public constant TREASURY_GAS_FOR_FEE_CAP = 100_000;
+    mapping(uint32 => address) endpoints; // eid => endpoint
+
+    uint256 public constant TREASURY_GAS_CAP = 1000000000000;
+    uint256 public constant TREASURY_GAS_FOR_FEE_CAP = 100000;
 
     uint128 public executorValueCap = 0.1 ether;
 
     EndpointSetup internal endpointSetup;
     LibrarySetup internal libSetup;
 
-    /**
-     * @dev Initializes the test environment setup, to be overridden by specific tests.
-     */
+    /// @dev Initializes test environment setup, to be overridden by specific tests.
     function setUp() public virtual {
         _setUpUlnOptions();
     }
 
     /**
-     * @dev Sets the executorValueCap if more than 0.1 ether is necessary.
-     * This must be called prior to setUpEndpoints() if the value is to be used.
-     * @param _valueCap Amount executor can pass as msg.value to lzReceive().
+     * @dev set executorValueCap if more than 0.1 ether is necessary
+     * @dev this must be called prior to setUpEndpoints() if the value is to be used
+     * @param _valueCap amount executor can pass as msg.value to lzReceive()
      */
     function setExecutorValueCap(uint128 _valueCap) public {
         executorValueCap = _valueCap;
@@ -107,27 +107,26 @@ contract TestHelperOz5 is Test, OptionsHelper {
      * @notice Sets up endpoints for testing.
      * @param _endpointNum The number of endpoints to create.
      * @param _libraryType The type of message library to use (UltraLightNode or SimpleMessageLib).
-     * @param _customDVNs Custom DVNs provided by the user.
      */
-    function setUpEndpoints(
-        uint8 _endpointNum,
-        LibraryType _libraryType,
-        address[] memory _customDVNs
-    ) public {
+    function setUpEndpoints(uint8 _endpointNum, LibraryType _libraryType, address[] memory _customDVNs) public {
         endpointSetup.endpointList = new EndpointV2[](_endpointNum);
         endpointSetup.eidList = new uint32[](_endpointNum);
         endpointSetup.sendLibs = new address[](_endpointNum);
         endpointSetup.receiveLibs = new address[](_endpointNum);
-        endpointSetup.signers = new address ;
+        endpointSetup.signers = new address[](1);
         endpointSetup.signers[0] = vm.addr(1);
 
-        for (uint8 i = 0; i < _endpointNum; i++) {
-            uint32 eid = i + 1;
-            endpointSetup.eidList[i] = eid;
-            endpointSetup.endpointList[i] = new EndpointV2(eid, address(this));
-            registerEndpoint(endpointSetup.endpointList[i]);
+        {
+            // deploy endpoints
+            for (uint8 i = 0; i < _endpointNum; i++) {
+                uint32 eid = i + 1;
+                endpointSetup.eidList[i] = eid;
+                endpointSetup.endpointList[i] = new EndpointV2(eid, address(this));
+                registerEndpoint(endpointSetup.endpointList[i]);
+            }
         }
 
+        // @dev oz4/5 breaking change... constructor init
         endpointSetup.priceFeed = new PriceFeed(address(this));
 
         for (uint8 i = 0; i < _endpointNum; i++) {
@@ -135,7 +134,7 @@ contract TestHelperOz5 is Test, OptionsHelper {
                 address endpointAddr = address(endpointSetup.endpointList[i]);
 
                 libSetup.sendUln = new SendUln302(
-                    payable(address(this)),
+                    payable(this),
                     endpointAddr,
                     TREASURY_GAS_CAP,
                     TREASURY_GAS_FOR_FEE_CAP
@@ -146,40 +145,43 @@ contract TestHelperOz5 is Test, OptionsHelper {
                 endpointSetup.sendLibs[i] = address(libSetup.sendUln);
                 endpointSetup.receiveLibs[i] = address(libSetup.receiveUln);
 
-                address[] memory admins = new address[](1);
-                admins[0] = address(this);
+                {
+                    address[] memory admins = new address[](1);
+                    admins[0] = address(this);
 
-                address[] memory messageLibs = new address[](2);
-                messageLibs[0] = address(libSetup.sendUln);
-                messageLibs[1] = address(libSetup.receiveUln);
+                    address[] memory messageLibs = new address[](2);
+                    messageLibs[0] = address(libSetup.sendUln);
+                    messageLibs[1] = address(libSetup.receiveUln);
 
-                libSetup.executor = new Executor(
-                    endpointAddr,
-                    address(0x0),
-                    messageLibs,
-                    address(endpointSetup.priceFeed),
-                    address(this),
-                    admins
-                );
-
-                libSetup.executorLib = new ExecutorFeeLib();
-                libSetup.executor.setWorkerFeeLib(address(libSetup.executorLib));
-
-                if (_customDVNs.length > i && _customDVNs[i] != address(0)) {
-                    libSetup.dvn = DVN(_customDVNs[i]); // Use custom DVN
-                } else {
-                    libSetup.dvn = new DVN(
-                        i + 1,
+                    libSetup.executor = new Executor(
+                        endpointAddr,
+                        address(0x0),
                         messageLibs,
                         address(endpointSetup.priceFeed),
-                        endpointSetup.signers,
-                        1,
+                        address(this),
                         admins
                     );
-                }
 
-                libSetup.dvnLib = new DVNFeeLib(1e18);
-                libSetup.dvn.setWorkerFeeLib(address(libSetup.dvnLib));
+                    libSetup.executorLib = new ExecutorFeeLib();
+                    libSetup.executor.setWorkerFeeLib(address(libSetup.executorLib));
+
+                    // Use custom DVN if provided, otherwise deploy a new one
+                    if (_customDVNs.length > i && _customDVNs[i] != address(0)) {
+                        libSetup.dvn = DVN(_customDVNs[i]); // Use custom DVN
+                    } else {
+                        libSetup.dvn = new DVN(
+                            i + 1,
+                            messageLibs,
+                            address(endpointSetup.priceFeed),
+                            endpointSetup.signers,
+                            1,
+                            admins
+                        );
+                    }
+
+                    libSetup.dvnLib = new DVNFeeLib(1e18);
+                    libSetup.dvn.setWorkerFeeLib(address(libSetup.dvnLib));
+                }
 
                 ConfigParams memory configParams;
                 configParams.executorConfigParams = new IExecutor.DstConfigParam[](_endpointNum);
@@ -190,27 +192,33 @@ contract TestHelperOz5 is Test, OptionsHelper {
                     uint32 dstEid = j + 1;
 
                     address[] memory defaultDVNs = new address[](1);
+                    address[] memory optionalDVNs = new address[](0);
                     defaultDVNs[0] = address(libSetup.dvn);
 
                     SetDefaultUlnConfigParam[] memory ulnParams = new SetDefaultUlnConfigParam[](1);
                     UlnConfig memory ulnConfig = UlnConfig(
                         100,
                         uint8(defaultDVNs.length),
-                        0,
+                        uint8(optionalDVNs.length),
                         0,
                         defaultDVNs,
-                        new address
+                        optionalDVNs
                     );
 
-                    ulnParams[0] = SetDefaultUlnConfigParam(dstEid, ulnConfig);
-                    libSetup.sendUln.setDefaultUlnConfigs(ulnParams);
-                    libSetup.receiveUln.setDefaultUlnConfigs(ulnParams);
+                    {
+                        ulnParams[0] = SetDefaultUlnConfigParam(dstEid, ulnConfig);
+                        libSetup.sendUln.setDefaultUlnConfigs(ulnParams);
+                        libSetup.receiveUln.setDefaultUlnConfigs(ulnParams);
+                    }
 
-                    SetDefaultExecutorConfigParam[] memory execParams = new SetDefaultExecutorConfigParam[](1);
-                    ExecutorConfig memory execConfig = ExecutorConfig(10000, address(libSetup.executor));
-                    execParams[0] = SetDefaultExecutorConfigParam(dstEid, execConfig);
-                    libSetup.sendUln.setDefaultExecutorConfigs(execParams);
+                    {
+                        SetDefaultExecutorConfigParam[] memory execParams = new SetDefaultExecutorConfigParam[](1);
+                        ExecutorConfig memory execConfig = ExecutorConfig(10000, address(libSetup.executor));
+                        execParams[0] = SetDefaultExecutorConfigParam(dstEid, execConfig);
+                        libSetup.sendUln.setDefaultExecutorConfigs(execParams);
+                    }
 
+                    // executor config
                     configParams.executorConfigParams[j] = IExecutor.DstConfigParam({
                     dstEid: dstEid,
                     lzReceiveBaseGas: 5000,
@@ -220,6 +228,7 @@ contract TestHelperOz5 is Test, OptionsHelper {
                     nativeCap: executorValueCap
                     });
 
+                    // dvn config
                     configParams.dvnConfigParams[j] = IDVN.DstConfigParam({
                     dstEid: dstEid,
                     gas: 5000,
@@ -229,7 +238,10 @@ contract TestHelperOz5 is Test, OptionsHelper {
 
                     uint128 denominator = endpointSetup.priceFeed.getPriceRatioDenominator();
                     ILayerZeroPriceFeed.UpdatePrice[] memory prices = new ILayerZeroPriceFeed.UpdatePrice[](1);
-                    prices[0] = ILayerZeroPriceFeed.UpdatePrice(dstEid, ILayerZeroPriceFeed.Price(denominator, 1, 1));
+                    prices[0] = ILayerZeroPriceFeed.UpdatePrice(
+                        dstEid,
+                        ILayerZeroPriceFeed.Price(1 * denominator, 1, 1)
+                    );
                     endpointSetup.priceFeed.setPrice(prices);
                 }
 
@@ -237,18 +249,18 @@ contract TestHelperOz5 is Test, OptionsHelper {
                 libSetup.dvn.setDstConfig(configParams.dvnConfigParams);
             } else if (_libraryType == LibraryType.SimpleMessageLib) {
                 SimpleMessageLibMock messageLib = new SimpleMessageLibMock(
-                    payable(address(this)),
+                    payable(this),
                     address(endpointSetup.endpointList[i])
                 );
                 endpointSetup.endpointList[i].registerLibrary(address(messageLib));
                 endpointSetup.sendLibs[i] = address(messageLib);
                 endpointSetup.receiveLibs[i] = address(messageLib);
             } else {
-                revert("Invalid library type");
+                revert("invalid library type");
             }
         }
 
-        // Configuration
+        // config up
         for (uint8 i = 0; i < _endpointNum; i++) {
             EndpointV2 endpoint = endpointSetup.endpointList[i];
             for (uint8 j = 0; j < _endpointNum; j++) {
@@ -260,7 +272,63 @@ contract TestHelperOz5 is Test, OptionsHelper {
     }
 
     /**
-     * @notice Schedules a packet for delivery.
+     * @notice Sets up mock OApp contracts for testing.
+     * @param _oappCreationCode The bytecode for creating OApp contracts.
+     * @param _startEid The starting endpoint ID for OApp setup.
+     * @param _oappNum The number of OApps to set up.
+     * @return oapps An array of addresses for the deployed OApps.
+     */
+    function setupOApps(
+        bytes memory _oappCreationCode,
+        uint8 _startEid,
+        uint8 _oappNum
+    ) public returns (address[] memory oapps) {
+        oapps = new address[](_oappNum);
+        for (uint8 eid = _startEid; eid < _startEid + _oappNum; eid++) {
+            address oapp = _deployOApp(_oappCreationCode, abi.encode(address(endpoints[eid]), address(this), true));
+            oapps[eid - _startEid] = oapp;
+        }
+        // config
+        wireOApps(oapps);
+    }
+
+    /**
+     * @notice Configures the peers between multiple OApp instances.
+     * @dev Sets each OApp as a peer to every other OApp in the provided array, except itself.
+     * @param oapps An array of addresses representing the deployed OApp instances.
+     */
+    function wireOApps(address[] memory oapps) public {
+        uint256 size = oapps.length;
+        for (uint256 i = 0; i < size; i++) {
+            IOAppSetPeer localOApp = IOAppSetPeer(oapps[i]);
+            for (uint256 j = 0; j < size; j++) {
+                if (i == j) continue;
+                IOAppSetPeer remoteOApp = IOAppSetPeer(oapps[j]);
+                uint32 remoteEid = (remoteOApp.endpoint()).eid();
+                localOApp.setPeer(remoteEid, addressToBytes32(address(remoteOApp)));
+            }
+        }
+    }
+
+    /**
+     * @notice Deploys an OApp contract using provided bytecode and constructor arguments.
+     * @dev This internal function uses low-level `create` for deploying a new contract.
+     * @param _oappBytecode The bytecode of the OApp contract to be deployed.
+     * @param _constructorArgs The encoded constructor arguments for the OApp contract.
+     * @return addr The address of the newly deployed OApp contract.
+     */
+    function _deployOApp(bytes memory _oappBytecode, bytes memory _constructorArgs) internal returns (address addr) {
+        bytes memory bytecode = bytes.concat(abi.encodePacked(_oappBytecode), _constructorArgs);
+        assembly {
+            addr := create(0, add(bytecode, 0x20), mload(bytecode))
+            if iszero(extcodesize(addr)) {
+                revert(0, 0)
+            }
+        }
+    }
+
+    /**
+     * @notice Schedules a packet for delivery, storing it in the packets queue.
      * @dev Adds the packet to the front of the queue and stores its options for later retrieval.
      * @param _packetBytes The packet data to be scheduled.
      * @param _options The options associated with the packet, used during delivery.
@@ -269,16 +337,15 @@ contract TestHelperOz5 is Test, OptionsHelper {
         uint32 dstEid = _packetBytes.dstEid();
         bytes32 dstAddress = _packetBytes.receiver();
         DoubleEndedQueue.Bytes32Deque storage queue = packetsQueue[dstEid][dstAddress];
+        // front in, back out
         bytes32 guid = _packetBytes.guid();
         queue.pushFront(guid);
         packets[guid] = _packetBytes;
         optionsLookup[guid] = _options;
     }
 
-    // Other helper functions unchanged from the original contract
-
-/**
- * @notice Verifies and processes packets destined for a specific chain and user address.
+    /**
+     * @notice Verifies and processes packets destined for a specific chain and user address.
      * @dev Calls an overloaded version of verifyPackets with default values for packet amount and composer address.
      * @param _dstEid The destination chain's endpoint ID.
      * @param _dstAddress The destination address in bytes32 format.
