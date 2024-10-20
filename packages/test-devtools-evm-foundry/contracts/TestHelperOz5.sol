@@ -220,20 +220,20 @@ contract TestHelperOz5 is Test, OptionsHelper {
 
                     // executor config
                     configParams.executorConfigParams[j] = IExecutor.DstConfigParam({
-                        dstEid: dstEid,
-                        lzReceiveBaseGas: 5000,
-                        lzComposeBaseGas: 5000,
-                        multiplierBps: 10000,
-                        floorMarginUSD: 1e10,
-                        nativeCap: executorValueCap
+                    dstEid: dstEid,
+                    lzReceiveBaseGas: 5000,
+                    lzComposeBaseGas: 5000,
+                    multiplierBps: 10000,
+                    floorMarginUSD: 1e10,
+                    nativeCap: executorValueCap
                     });
 
                     // dvn config
                     configParams.dvnConfigParams[j] = IDVN.DstConfigParam({
-                        dstEid: dstEid,
-                        gas: 5000,
-                        multiplierBps: 10000,
-                        floorMarginUSD: 1e10
+                    dstEid: dstEid,
+                    gas: 5000,
+                    multiplierBps: 10000,
+                    floorMarginUSD: 1e10
                     });
 
                     uint128 denominator = endpointSetup.priceFeed.getPriceRatioDenominator();
