@@ -20,6 +20,7 @@ remappings = [
     # of forge-std is being dragged in
     # 
     # To remedy this, we'll remap the ds-test and forge-std imports to ou own versions
+    'ds-test/=node_modules/ds-test/src/',
     '@layerzerolabs/=node_modules/@layerzerolabs/',
     '@openzeppelin/=node_modules/@openzeppelin/',
 ]
