@@ -46,6 +46,8 @@ contract EndpointManager {
 
     mapping(uint32 => address) private endpoints; // eid => endpoint
 
+    uint128 public executorValueCap = 0.1 ether;
+
     EndpointSetup internal endpointSetup;
     LibrarySetup internal libSetup;
 
