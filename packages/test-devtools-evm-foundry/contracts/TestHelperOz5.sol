@@ -18,7 +18,8 @@ import { Origin, ILayerZeroEndpointV2 } from "@layerzerolabs/lz-evm-protocol-v2/
 
 import { EndpointV2Mock as EndpointV2 } from "./mocks/EndpointV2Mock.sol";
 import { ReceiveUln302Mock as ReceiveUln302, IReceiveUlnE2 } from "./mocks/ReceiveUln302Mock.sol";
-import { DVNMock as DVN, ExecuteParam, IDVN } from "./mocks/DVNMock.sol";
+import { DVNMock as DVN, ExecuteParam } from "./mocks/DVNMock.sol";
+import { UlnConfig } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
 
 // Miscellaneous Mocks
 import { OptionsHelper } from "./OptionsHelper.sol";
