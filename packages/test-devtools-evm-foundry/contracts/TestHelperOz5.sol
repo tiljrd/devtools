@@ -20,6 +20,7 @@ import { EndpointV2Mock as EndpointV2 } from "./mocks/EndpointV2Mock.sol";
 import { ReceiveUln302Mock as ReceiveUln302, IReceiveUlnE2 } from "./mocks/ReceiveUln302Mock.sol";
 import { DVNMock as DVN, ExecuteParam } from "./mocks/DVNMock.sol";
 import { UlnConfig } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
+import { SimpleMessageLibMock } from "./mocks/SimpleMessageLibMock.sol";
 
 // Miscellaneous Mocks
 import { OptionsHelper } from "./OptionsHelper.sol";
