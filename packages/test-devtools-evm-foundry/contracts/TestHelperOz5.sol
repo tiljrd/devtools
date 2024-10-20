@@ -41,6 +41,8 @@ contract TestHelperOz5 is Test, OptionsHelper {
 
     uint128 public executorValueCap = 0.1 ether;
 
+    EndpointManager public endpointManager;
+
     /**
      * @dev Initializes the test environment setup, to be overridden by specific tests.
      */
@@ -99,7 +101,7 @@ contract TestHelperOz5 is Test, OptionsHelper {
      * @dev will NOT work calling this directly with composer IF the composed payload is different from the lzReceive msg payload
      */
     function verifyPackets(uint32 _dstEid, bytes32 _dstAddress, uint256 _packetAmount, address _composer) public {
-        require(endpoints[_dstEid] != address(0), "endpoint not yet registered");
+        require(endpointManager.getEndpoint(_dstEid) != address(0), "endpoint not yet registered");
 
         DoubleEndedQueue.Bytes32Deque storage queue = packetsQueue[_dstEid][_dstAddress];
         uint256 pendingPacketsSize = queue.length();
@@ -134,7 +136,8 @@ contract TestHelperOz5 is Test, OptionsHelper {
     }
 
     function lzReceive(bytes calldata _packetBytes, bytes memory _options) external payable {
-        EndpointV2 endpoint = EndpointV2(endpoints[_packetBytes.dstEid()]);
+        address endpointAddr = endpointManager.getEndpoint(_packetBytes.dstEid());
+        EndpointV2 endpoint = EndpointV2(endpointAddr);
         (uint256 gas, uint256 value) = OptionsHelper._parseExecutorLzReceiveOption(_options);
 
         Origin memory origin = Origin(_packetBytes.srcEid(), _packetBytes.sender(), _packetBytes.nonce());
@@ -173,14 +176,16 @@ contract TestHelperOz5 is Test, OptionsHelper {
         address _to,
         bytes calldata _composerMsg
     ) external payable {
-        EndpointV2 endpoint = EndpointV2(endpoints[_dstEid]);
+        address endpointAddr = endpointManager.getEndpoint(_dstEid);
+        EndpointV2 endpoint = EndpointV2(endpointAddr);
         (uint16 index, uint256 gas, uint256 value) = _parseExecutorLzComposeOption(_options);
         endpoint.lzCompose{ value: value, gas: gas }(_from, _to, _guid, index, _composerMsg, bytes(""));
     }
 
     function validatePacket(bytes calldata _packetBytes) external {
         uint32 dstEid = _packetBytes.dstEid();
-        EndpointV2 endpoint = EndpointV2(endpoints[dstEid]);
+        address endpointAddr = endpointManager.getEndpoint(dstEid);
+        EndpointV2 endpoint = EndpointV2(endpointAddr);
         (address receiveLib, ) = endpoint.getReceiveLibrary(_packetBytes.receiverB20(), _packetBytes.srcEid());
         ReceiveUln302 dstUln = ReceiveUln302(receiveLib);
 

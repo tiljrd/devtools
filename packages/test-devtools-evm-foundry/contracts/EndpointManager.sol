@@ -1,3 +1,5 @@
+pragma solidity ^0.8.18;
+
 import { EndpointV2Mock as EndpointV2 } from "./mocks/EndpointV2Mock.sol";
 import { SendUln302Mock as SendUln302 } from "./mocks/SendUln302Mock.sol";
 import { ReceiveUln302Mock as ReceiveUln302, IReceiveUlnE2 } from "./mocks/ReceiveUln302Mock.sol";
@@ -42,7 +44,7 @@ contract EndpointManager {
         IDVN.DstConfigParam[] dvnConfigParams;
     }
 
-    mapping(uint32 => address) public endpoints; // eid => endpoint
+    mapping(uint32 => address) private endpoints; // eid => endpoint
 
     EndpointSetup internal endpointSetup;
     LibrarySetup internal libSetup;
@@ -208,5 +210,9 @@ contract EndpointManager {
 
     function registerEndpoint(EndpointV2 endpoint) public {
         endpoints[endpoint.eid()] = address(endpoint);
+    }
+
+    function getEndpoint(uint32 eid) public view returns (address) {
+        return endpoints[eid];
     }
 }
